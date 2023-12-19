@@ -1,0 +1,18 @@
+html,
+body {
+  margin: 0;
+  background-color: black;
+}
+
+.container {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.box {
+  border: 1px solid white;
+}
