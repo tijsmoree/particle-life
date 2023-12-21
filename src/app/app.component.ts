@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,13 +10,23 @@ import {
 
 const array = (n: number) => new Array(n).fill(0);
 
-const SIZE = 500;
+const PIXELS = 800;
+const SIZE = 300;
 
-const DMAX = 100;
+const DMAX = 50;
 const ALPHA = 0.7;
 const BETA = 0.2;
 
-const COLORS = ['red', 'chartreuse', 'cornflowerblue', 'yellow'];
+const MOUSE = -10;
+
+const FORCES = [
+  [0.5, 0, 0, 0],
+  [0, 0.5, 0, 0],
+  [0, 0, 0.5, 0],
+  [0, 0, 0, 0.5],
+];
+
+const KEY = 'PARTICLEFORCES';
 
 class Particle {
   constructor(
@@ -27,22 +38,20 @@ class Particle {
   ) {}
 }
 
-const FORCES = [
-  [0.5, 1, 0, -1],
-  [-1, 0.5, 1, 0],
-  [0, -1, 0.5, 1],
-  [1, 0, -1, 0.5],
-];
-
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DecimalPipe],
 })
 export class AppComponent implements OnInit {
   @ViewChild('canvas', { static: true })
   private readonly canvas!: ElementRef<HTMLCanvasElement>;
+
+  readonly colors = ['tomato', 'chartreuse', 'cornflowerblue', 'yellow'];
+
+  forces = FORCES;
 
   readonly particles = [
     ...array(300).map(() => new Particle(0)),
@@ -53,7 +62,16 @@ export class AppComponent implements OnInit {
 
   size = SIZE;
 
+  mouse?: { x: number; y: number };
+
   ngOnInit(): void {
+    try {
+      const forces = localStorage.getItem(KEY);
+      if (forces) {
+        this.forces = JSON.parse(forces);
+      }
+    } catch {}
+
     this.resize();
 
     let last = 0;
@@ -77,8 +95,8 @@ export class AppComponent implements OnInit {
     const canvas = this.canvas.nativeElement;
 
     if (canvas) {
-      canvas.style.width = `800px`;
-      canvas.style.height = `800px`;
+      canvas.style.width = `${PIXELS}px`;
+      canvas.style.height = `${PIXELS}px`;
       canvas.width = this.size;
       canvas.height = this.size;
 
@@ -89,12 +107,55 @@ export class AppComponent implements OnInit {
     }
   }
 
+  wheel(i: number, j: number, value: number): void {
+    this.forces[i][j] = Math.min(
+      1,
+      Math.max(-1, this.forces[i][j] + value / 500),
+    );
+
+    localStorage.setItem(KEY, JSON.stringify(this.forces));
+  }
+
+  reset(): void {
+    this.forces = JSON.parse(JSON.stringify(FORCES));
+  }
+
+  move(event: MouseEvent): void {
+    this.mouse = {
+      x: (event.offsetX / PIXELS) * SIZE,
+      y: (event.offsetY / PIXELS) * SIZE,
+    };
+  }
+
+  leave(): void {
+    this.mouse = undefined;
+  }
+
   private update(dt: number): void {
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
 
       let ax = 0;
       let ay = 0;
+
+      if (this.mouse) {
+        const dxx = this.mouse.x - particle.xx;
+        const dx =
+          dxx < -0.5 * SIZE ? dxx + SIZE : dxx > 0.5 * SIZE ? dxx - SIZE : dxx;
+
+        const dxy = this.mouse.y - particle.xy;
+        const dy =
+          dxy < -0.5 * SIZE ? dxy + SIZE : dxy > 0.5 * SIZE ? dxy - SIZE : dxy;
+
+        if (dx > -DMAX && dx < DMAX && dy > -DMAX && dy < DMAX) {
+          const d = Math.sqrt(dx * dx + dy * dy);
+
+          if (d < DMAX) {
+            ax += ((DMAX * dx) / d) * MOUSE;
+            ay += ((DMAX * dy) / d) * MOUSE;
+          }
+        }
+      }
 
       for (let j = 0; j < this.particles.length; j++) {
         if (i === j) {
@@ -118,7 +179,7 @@ export class AppComponent implements OnInit {
         const d = Math.sqrt(dx * dx + dy * dy);
         const r = d / DMAX;
 
-        const maxForce = FORCES[particle.color][p.color];
+        const maxForce = this.forces[particle.color][p.color];
 
         const force =
           r < BETA
@@ -149,7 +210,7 @@ export class AppComponent implements OnInit {
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
 
-      ctx.fillStyle = COLORS[particle.color];
+      ctx.fillStyle = this.colors[particle.color];
       ctx.fillRect(particle.xx, particle.xy, 1, 1);
     }
   }

@@ -16,3 +16,31 @@ body {
 .box {
   border: 1px solid white;
 }
+
+.settings {
+  margin-right: 100px;
+
+  .setting-row {
+    display: flex;
+
+    .setting {
+      width: 40px;
+      height: 40px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .dot {
+        width: calc(var(--size, 1) * 80%);
+        height: calc(var(--size, 1) * 80%);
+        border: 1px solid white;
+        border-radius: 100%;
+
+        &.dot-positive {
+          background-color: white;
+        }
+      }
+    }
+  }
+}

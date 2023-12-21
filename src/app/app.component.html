@@ -1,5 +1,34 @@
 <div class="container">
-  <div class="box">
+  <div class="settings">
+    <div class="setting-row">
+      <div class="setting" (click)="reset()"></div>
+
+      @for (color of colors; track j; let j = $index) {
+        <div class="setting">
+          <div class="dot" [style.background-color]="color"></div>
+        </div>
+      }
+    </div>
+
+    @for (color of colors; track i; let i = $index) {
+      <div class="setting-row">
+        <div class="setting">
+          <div class="dot" [style.background-color]="color"></div>
+        </div>
+
+        @for (color of colors; track j; let j = $index) {
+          <div class="setting" (wheel)="wheel(i, j, $event.deltaY)">
+            <div
+              class="dot"
+              [class.dot-positive]="forces[i][j] > 0"
+              [style.--size]="forces[i][j] > 0 ? forces[i][j] : -forces[i][j]"
+            ></div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <div class="box" (mousemove)="move($event)" (mouseleave)="leave()">
     <canvas #canvas></canvas>
   </div>
 </div>
